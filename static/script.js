@@ -72,30 +72,27 @@ socket.on('nickname_set', (data) => {
     messageInput.focus();
 });
 
-// TODO: Handle message history from the server
-// When the server sends message history (after a user sets their nickname),
-// you need to display all the historical messages in the chat
+// Handle message history from the server
 socket.on('message_history', (data) => {
-    // TODO: Implement message history display
-    // Steps:
-    // 1. Log the number of messages received (for debugging)
-    // 2. Clear any existing messages in the chatMessages div
-    // 3. Loop through data.messages array
-    // 4. For each message, destructure: [content, nickname, timestamp, messageType]
-    // 5. Determine if it's a system message (messageType === 'system_join' || 'system_leave')
-    // 6. For regular messages, reconstruct the display format: `${nickname}: ${content}`
-    //    For system messages, use the content as-is
-    // 7. Call addMessageWithTimestamp() with the display text, isSystem flag, and timestamp
-    // 
-    // Example structure:
-    // console.log('Loading message history:', data.messages.length, 'messages');
-    // chatMessages.innerHTML = '';
-    // if (data.messages && data.messages.length > 0) {
-    //     data.messages.forEach((msg) => {
-    //         const [content, nickname, timestamp, messageType] = msg;
-    //         // ... (add your code here)
-    //     });
-    // }
+    console.log('Loading message history:', data.messages.length, 'messages');
+    chatMessages.innerHTML = '';
+    if (data.messages && data.messages.length > 0) {
+        data.messages.forEach((msg) => {
+            const [content, nickname, timestamp, messageType] = msg;
+            const isSystem = (messageType === 'system_join' || messageType === 'system_leave');
+            
+            // For regular messages, reconstruct the display format
+            // For system messages, use the content as-is
+            let displayText;
+            if (isSystem) {
+                displayText = content;
+            } else {
+                displayText = `${nickname}: ${content}`;
+            }
+            
+            addMessageWithTimestamp(displayText, isSystem, timestamp);
+        });
+    }
 });
 
 // When there's an error
@@ -134,21 +131,22 @@ function getTimestamp() {
 // 7. Return formatted string: `${hours}:${minutesStr}${ampm}`
 // 8. If there's an error, return getTimestamp() as fallback
 //
-// Example structure:
-// function formatTimestamp(isoString) {
-//     if (!isoString) return getTimestamp();
-//     try {
-//         const date = new Date(isoString);
-//         // ... (add your code here)
-//     } catch (e) {
-//         return getTimestamp();
-//     }
-// }
 function formatTimestamp(isoString) {
-    // TODO: Implement this function
-    // Hint: Use new Date(isoString) to parse the ISO timestamp
-    // Hint: Use date.getHours() and date.getMinutes() to extract time components
-    return getTimestamp(); // Placeholder - replace with your implementation
+    if (!isoString) return getTimestamp();
+    try {
+        const date = new Date(isoString);
+        let hours = date.getHours();
+        const minutes = date.getMinutes();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        
+        hours = hours % 12;
+        hours = hours ? hours : 12; // 0 should be 12
+        
+        const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+        return `${hours}:${minutesStr}${ampm}`;
+    } catch (e) {
+        return getTimestamp();
+    }
 }
 
 // Function to add a message to the chat
@@ -179,17 +177,37 @@ function addMessage(text, isSystem) {
 // 10. Append messageDiv to chatMessages container
 // 11. Scroll to bottom: chatMessages.scrollTop = chatMessages.scrollHeight
 //
-// Example structure:
-// function addMessageWithTimestamp(text, isSystem, timestamp) {
-//     const messageDiv = document.createElement('div');
-//     messageDiv.className = 'message';
-//     // ... (add your code here)
-// }
 function addMessageWithTimestamp(text, isSystem, timestamp) {
-    // TODO: Implement this function
-    // Hint: Use document.createElement() to create DOM elements
-    // Hint: Use element.appendChild() to add elements to the DOM
-    // Hint: Use formatTimestamp() to format the timestamp if provided
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message';
+    
+    // Determine the timestamp string
+    const timestampStr = timestamp ? formatTimestamp(timestamp) : getTimestamp();
+    
+    // Check if it's a system message
+    if (isSystem || text.includes('joined') || text.includes('left') || 
+        text.includes('Connected') || text.includes('Disconnected')) {
+        messageDiv.classList.add('system');
+    }
+    
+    // Create timestamp span
+    const timestampSpan = document.createElement('span');
+    timestampSpan.className = 'timestamp';
+    timestampSpan.textContent = timestampStr + ' ';
+    
+    // Create message text span
+    const textSpan = document.createElement('span');
+    textSpan.textContent = text;
+    
+    // Append elements to message div
+    messageDiv.appendChild(timestampSpan);
+    messageDiv.appendChild(textSpan);
+    
+    // Append message to chat container
+    chatMessages.appendChild(messageDiv);
+    
+    // Scroll to bottom
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 // When user clicks "Join Chat" button
