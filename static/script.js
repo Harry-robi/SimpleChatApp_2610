@@ -96,6 +96,21 @@ socket.on('message_history', (data) => {
     //         // ... (add your code here)
     //     });
     // }
+    console.log('Loading message history:', data.messages.length, 'messages');
+    chatMessages.innerHTML = '';
+    if (data.messages && data.messages.length > 0) {
+        data.messages.forEach((msg) => {
+            const [content, nickname, timestamp, messageType] = msg;
+            const isSystem = messageType === 'system_join' || messageType === 'system_leave';
+            let displayText;
+            if (isSystem) {
+                displayText = content;
+            } else {
+                displayText = `${nickname}: ${content}`;
+            }
+            addMessageWithTimestamp(displayText, isSystem, timestamp);
+        });
+    }
 });
 
 // When there's an error
@@ -148,7 +163,21 @@ function formatTimestamp(isoString) {
     // TODO: Implement this function
     // Hint: Use new Date(isoString) to parse the ISO timestamp
     // Hint: Use date.getHours() and date.getMinutes() to extract time components
-    return getTimestamp(); // Placeholder - replace with your implementation
+    if (!isoString) return getTimestamp();
+    try {
+        const date = new Date(isoString);
+        let hours = date.getHours();
+        const minutes = date.getMinutes();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        
+        hours = hours % 12;
+        hours = hours ? hours : 12; // 0 should be 12
+        
+        const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+        return `${hours}:${minutesStr}${ampm}`;
+    } catch (e) {
+        return getTimestamp();
+    }
 }
 
 // Function to add a message to the chat
@@ -190,6 +219,26 @@ function addMessageWithTimestamp(text, isSystem, timestamp) {
     // Hint: Use document.createElement() to create DOM elements
     // Hint: Use element.appendChild() to add elements to the DOM
     // Hint: Use formatTimestamp() to format the timestamp if provided
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message';
+    
+    const timestampStr = timestamp ? formatTimestamp(timestamp) : getTimestamp();
+    
+    if (isSystem || text.includes('joined') || text.includes('left') || text.includes('Connected') || text.includes('Disconnected')) {
+        messageDiv.classList.add('system');
+    }
+    
+    const timestampSpan = document.createElement('span');
+    timestampSpan.className = 'timestamp';
+    timestampSpan.textContent = timestampStr + ' ';
+    
+    const messageTextSpan = document.createElement('span');
+    messageTextSpan.textContent = text;
+    
+    messageDiv.appendChild(timestampSpan);
+    messageDiv.appendChild(messageTextSpan);
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 // When user clicks "Join Chat" button
